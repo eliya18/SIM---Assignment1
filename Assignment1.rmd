@@ -13,7 +13,8 @@ library(rpart)
 library(chemometrics)
 ```
 
-Preparing the data in the environment 
+Preparing the data in the environment
+
 ```{r}
 # Clear plots
 if(!is.null(dev.list())) dev.off()
@@ -26,12 +27,14 @@ df <- read.csv("insurance.csv")
 ```
 
 Data cleaning
+
 ```{r}
 is.null(df) #no nulls in the data
 replace(ddf,which(ddf %like% " "),'')
 replace(df,which(df %like% " "), '') #close all blank spaces
 which(df=="") #no blanks found in the data
 #check for distinct values and whether there are differences in them
+
 unique(df$sex) #expecting 2 values
 unique(df$smoker) #expecting 2 values
 unique(df$region) #expecting 4 values
@@ -40,6 +43,7 @@ unique(df$region) #expecting 4 values
 df$f.sex <- factor(df$sex,labels = c("female","male"));
 df$f.smoker <- factor(df$smoker,labels = c("no","yes"))
 df$f.region <- factor(df$region,labels = c("northeast","northwest","southeast","southwest"))
+
 summary(df) #from the summary we can see the factor values, it seems that sex and region are distributed equally and not much smokers compare to the non smokers.
 dim(df)
 unique(df)
@@ -57,6 +61,7 @@ plot(df$charges,df$bmi)
 ```
 
 Explanatory data analysis
+
 ```{r}
 summary(df)
 #numeric variables
@@ -70,3 +75,23 @@ summary(df[,c(1,4,8:10)])
 
 
 ```
+
+-    Determine if the response variable (charges) has an acceptably normal distribution.
+
+```{r}
+# Density plot to check the distribution
+ggpubr::ggdensity(df$charges,  fill = "lightgray", add = "mean",  xlab = "charges variable density")
+
+
+# Shapiro Test to asses that data on response variable is normaly distribution
+# H0 = Data is normally distributed
+# H1 = Data is not normally distributed
+# alfa = 0.05
+shapiro.test(df$charges)
+
+
+```
+
+As we can see, the density plot shows that data is not normally distributed. To asses that, we can use one of many statistical tests that check normality on data. In this case, we use Shapiro test.
+
+The result of the Shapiro test shows that data in variable **charges** is not normally distributed since *p-value* is less than the significance level (0.05) so we reject the null hypothesis (data is normally distributed) and we conclude that data is not normally distributed (alternative hypothesis)
