@@ -1,0 +1,72 @@
+---
+title: "Assignment1"
+output: html_document
+Name: Eliya Tiram
+---
+
+```{r}
+library(GGally)
+install.packages("data.table")
+library(data.table)
+library(car)
+library(rpart)
+library(chemometrics)
+```
+
+Preparing the data in the environment 
+```{r}
+# Clear plots
+if(!is.null(dev.list())) dev.off()
+
+# Clean workspace
+rm(list=ls())
+
+#load data
+df <- read.csv("insurance.csv")
+```
+
+Data cleaning
+```{r}
+is.null(df) #no nulls in the data
+replace(ddf,which(ddf %like% " "),'')
+replace(df,which(df %like% " "), '') #close all blank spaces
+which(df=="") #no blanks found in the data
+#check for distinct values and whether there are differences in them
+unique(df$sex) #expecting 2 values
+unique(df$smoker) #expecting 2 values
+unique(df$region) #expecting 4 values
+#we can see that data is consistent for categorial variables
+
+df$f.sex <- factor(df$sex,labels = c("female","male"));
+df$f.smoker <- factor(df$smoker,labels = c("no","yes"))
+df$f.region <- factor(df$region,labels = c("northeast","northwest","southeast","southwest"))
+summary(df) #from the summary we can see the factor values, it seems that sex and region are distributed equally and not much smokers compare to the non smokers.
+dim(df)
+unique(df)
+#There is only one observation which repeat twice, it makes sense that a person with the same properties will have the same charge and since it's only one I decide to leave it there.
+
+#outliers
+par(mfrow=c(1,1))
+Boxplot(df$charges)
+Boxplot(df$bmi)
+#we can see extreme outliers for both charges and bmi, since it's just serval observation it might be the case that for a certain bmi, age or smokers the charge value is raising by a lot compare to the rest. from looking at the high value of column charges it can be seen that all are smokers and mid-high bmi, also some of the ages I see are relatively high.
+#infering from graphs
+res.out<-Moutlier(df[,c(7,3)],quantile=0.975)
+str(res.out)
+plot(df$charges,df$bmi)
+```
+
+Explanatory data analysis
+```{r}
+summary(df)
+#numeric variables
+summary(df[,c(3,7)]) 
+plot(df[,c(3,7)])
+ggpairs(df[,c(3,7)])
+
+#categorical variables
+summary(df[,c(1,4,8:10)])
+#from the summary we can see the factor values, it seems that sex and region are distributed equally and not much smokers compare to the non smokers. age and number of children looks about right and there is values in a range that makes sense.
+
+
+```
