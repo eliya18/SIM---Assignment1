@@ -47,13 +47,13 @@ a new theory? If not, is that because of a data quality issue? [**Achraf**]
 -    If you can improve linear relations or limit the effect of influential data, you must consider the suitable transformations for variables. [**Achraf**]
 
 -   Apart from the original factor variables, you can consider other categorical variables that
-    can be defined from categorized numeric variables. [Eliya]
+    can be defined from categorized numeric variables. [**Eliya**]
 
 -   You must take into account possible interactions between categorical and numerical
     variables. [**Eliya**]
 
 -   When building the model, you should study the presence of multicollinearity and try to
-    reduce their impact on the model for easier interpretation. [Achraf]
+    reduce their impact on the model for easier interpretation. [**Achraf**]
 
 -   You should build the model using a technique for selecting variables (removing no
     significant predictors and/or stepwise selection of the best models). [**Achraf**]
@@ -70,12 +70,12 @@ a new theory? If not, is that because of a data quality issue? [**Achraf**]
 
 ```{r}
 library(GGally)
-install.packages("data.table")
+#install.packages("data.table")
 library(data.table)
 library(car)
 library(rpart)
 library(chemometrics)
-install.packages("mvoutlier")
+#install.packages("mvoutlier")
 library(mvoutlier)
 library(sgeostat)
 library(lmtest)
@@ -96,14 +96,13 @@ Data cleaning
 
 ```{r}
 is.null(df) #no nulls in the data
-#replace(ddf,which(ddf %like% " "),'')
 replace(df,which(df %like% " "), '') #close all blank spaces
 which(df=="") #no blanks found in the data
 #check for distinct values and whether there are differences in them
 unique(df$sex) #expecting 2 values
 unique(df$smoker) #expecting 2 values
 unique(df$region) #expecting 4 values
-#we can see that data is consistent for categorial variables
+#we can see that data is consistent for categorical variables
 df$f.sex <- factor(df$sex,labels = c("female","male"));
 df$f.smoker <- factor(df$smoker,labels = c("no","yes"))
 df$f.region <- factor(df$region,labels = c("northeast","northwest","southeast","southwest"))
@@ -179,9 +178,6 @@ The result of the Shapiro test shows that data in variable **charges** is not no
 par(mfrow=c(1,1))
 acf(df$charges)
 dwtest(df$charges~1)
-# a graph shows auto correlation, we have the blue threshold and because the lines are not in the threshold means there is correlation within the data in the column we check. we can always create new variable with less observations and compare just 100 observation for example.
-#BUT the solution for would better be to RANDOM THE ORDER OF THE OBSERVATIONS.
-#here we can see the data is not correlated and now we can do the shapiro test - the first line is always one and the rest is in the threshold so it's independent
 ```
 Address tests to discard serial correlation:
 In the acf (auto correlation function) we can see from the graph that the data is not correlated where we have the blue threshold and all lines are within the threshold, we do see that there is one or two lines that crosses the threshold but just in a little bit so we leave it as it is without random the order of the observations. In addition we address Durbin-Watson test to check whether true autocorrelation is greater or not than 0. We see p-value 0.5183, thus we don't reject the null hypothesis and say that true autocorrelation is not greater than 0.
@@ -193,3 +189,12 @@ library(DataExplorer)
 create_report(df, y= "charges")
 ```
 #THIS IS NOTE TO OURSELFS - there this libray which basically creates a whole report of the explenatory data analysis, we can consider if we want to put into as EDA is requested twice in the project statement, once at data preparation and another on the tasks
+
+-   Apart from the original factor variables, you can consider other categorical variables that
+    can be defined from categorized numeric variables. [**Eliya**]
+    
+```{r}
+df$age_range <- cut(df$age, breaks = quantile(df$age,probs = c(0,0.25,0.5,0.75,1)), include.lowest = T)
+summary(df)
+```
+We have created a new variable called age_range where we divide the ages into 4 groups according to the 4 quantiles. From the summary (and the new column in the data set) we see 4 groups of ages and how many observations were fit into each age group.
