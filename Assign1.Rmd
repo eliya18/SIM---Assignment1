@@ -1,0 +1,195 @@
+---
+title: "Assignment1"
+output: html_document
+Name: Eliya Tiram
+editor_options: 
+  chunk_output_type: console
+---
+
+# DATA PREPARATION
+
+• ~~Removing duplicate or irrelevant observations [**Eliya**]~~ DONE
+
+• ~~Fix structural errors (usually coding errors, trailing blanks in labels, lower/upper case
+consistency, etc.). [**Eliya**]~~ DONE
+
+~~• Check data types. Dates should be coded as such and factors should have level names (if
+possible, levels have to be set and clarify the variable they belong to). This point is sometimes included under data transformation process. New derived variables are to be produced sometimes scaling and/or normalization (range/shape changes to numeric variables) or category regrouping for factors (nominal/ordinal). [**Eliya**]~~ DONE
+
+::: {style="color: red;"}
+
+• Filter unwanted outliers. Univariate and multivariate outliers have to be highlighted.Remove register/erase values and set NA for univariate outiers. [**Eliya**] *--I HAVE PATIALLY DID IT, STILL NEED TO UNDERSTAND SOMETHING THERE*
+:::
+
+::: {style="color: red;"}
+
+• Handle missing data: figure out why the data is missing. Data imputation is to be considered when the aim is modelling (imputation has to be validated). [**Achraf**]
+:::
+
+• Data validation is mixed of \'common sense and sector knowledge\': Does the data make
+sense? Does the data follow the appropriate rules for its field? Does it prove or disprove the
+working theory, or bring any insight to light? Can you find trends in the data to help you form
+a new theory? If not, is that because of a data quality issue? [**Achraf**]
+
+# TASKS
+
+-   ~~Create factors for qualitative variables. [Eliya]~~ *DONE*
+
+-   ~~Determine if the response variable (charges) has an acceptably normal distribution~~ [**Achraf**]
+
+-   Address tests to discard serial correlation. [**Eliya**] *DONE*
+
+-   Detect univariant and multivariant outliers, errors and missing values (if any) and apply animputation technique if needed. [Achraf]
+
+-   Preliminary exploratory analysis to describe the relationships observed has to be
+    undertaken. [**Eliya**]
+
+-    If you can improve linear relations or limit the effect of influential data, you must consider the suitable transformations for variables. [**Achraf**]
+
+-   Apart from the original factor variables, you can consider other categorical variables that
+    can be defined from categorized numeric variables. [Eliya]
+
+-   You must take into account possible interactions between categorical and numerical
+    variables. [**Eliya**]
+
+-   When building the model, you should study the presence of multicollinearity and try to
+    reduce their impact on the model for easier interpretation. [Achraf]
+
+-   You should build the model using a technique for selecting variables (removing no
+    significant predictors and/or stepwise selection of the best models). [**Achraf**]
+
+-   The validation of the model has to be done with graphs and / or suitable tests to verify
+    model assumptions. [**Achraf**]
+
+-   You must include the study of unusual and / or influential data. [**Achraf**]
+
+-    The resulting model should be interpreted in terms of the relationships of selected
+    predictors and its effect on the response variable. [**Eliya**]
+
+# ASSIGNMENT
+
+```{r}
+library(GGally)
+install.packages("data.table")
+library(data.table)
+library(car)
+library(rpart)
+library(chemometrics)
+install.packages("mvoutlier")
+library(mvoutlier)
+library(sgeostat)
+library(lmtest)
+```
+
+Preparing the data in the environment
+
+```{r}
+# Clear plots
+if(!is.null(dev.list())) dev.off()
+# Clean workspace
+rm(list=ls())
+#load data
+df <- read.csv("insurance.csv")
+```
+
+Data cleaning
+
+```{r}
+is.null(df) #no nulls in the data
+#replace(ddf,which(ddf %like% " "),'')
+replace(df,which(df %like% " "), '') #close all blank spaces
+which(df=="") #no blanks found in the data
+#check for distinct values and whether there are differences in them
+unique(df$sex) #expecting 2 values
+unique(df$smoker) #expecting 2 values
+unique(df$region) #expecting 4 values
+#we can see that data is consistent for categorial variables
+df$f.sex <- factor(df$sex,labels = c("female","male"));
+df$f.smoker <- factor(df$smoker,labels = c("no","yes"))
+df$f.region <- factor(df$region,labels = c("northeast","northwest","southeast","southwest"))
+summary(df) #from the summary we can see the factor values, it seems that sex and region are distributed equally and not much smokers compare to the non smokers.
+dim(df)
+unique(df)
+#There is only one observation which repeat twice, it makes sense that a person with the same properties will have the same charge and since it's only one we decide to leave it there.
+#outliers
+par(mfrow=c(1,2))
+Boxplot(df$charges)
+Boxplot(df$bmi)
+#we can see extreme outliers for both charges and bmi, since it's just serval observation it might be the case that for a certain bmi, age or smokers the charge value is raising by a lot compare to the rest. from looking at the high value of column charges it can be seen that all are smokers and mid-high bmi, also some of the ages I see are relatively high.
+#infering from graphs
+res.out<-Moutlier(df[,c(7,3)],quantile=0.975)
+str(res.out)
+plot(df$charges,df$bmi)
+res.out$cutoff
+
+quantile(res.out$md,seq(0,1,0.025))
+which((res.out$md > res.out$cutoff) & (res.out$rd > res.out$cutoff))
+ddf <-df[which((res.out$md > res.out$cutoff) & (res.out$rd > res.out$cutoff)),]
+summary(df)
+summary(ddf)
+View(ddf)
+##When looking at the results of the multivariate outliers we see that all the highest charges are for smokers for 43 out 45 identified outliers. In addition, there are 2 more observations where the objects are not smokers but they have a very high bmi, one of them is the highest value in the data set and the other is not too far from it.
+plot( res.out$md, res.out$rd )
+#text(res.out$md, res.out$rd, labels=rownames(df),adj=1, cex=0.5)
+abline(h=res.out$cutoff, col="red")
+abline(v=res.out$cutoff, col="red")
+#I NEED TO REMEMBER HOW TO INTERPETE THIS PLOT - I KNOW THAT WHATEVER ABOVE THE CUTOFF IS A MULTIVARIATE OUTLIER BUT SINCE MY EXPLANATION ABOVE WE ARE NOT GOING TO DELETE THEM OF IMPUTE THEM CAUSE WE HAVE EXPLNATION.
+res.out$cutoff^2
+qchisq(0.975,4)
+
+aq.plot(df[,c(3,7)],delta = qchisq(0.95,df=ncol(x)),alpha = 0.05)
+
+```
+
+Explanatory data analysis
+
+```{r}
+summary(df)
+#numeric variables
+summary(df[,c(3,7)]) 
+plot(df[,c(3,7)])
+ggpairs(df[,c(3,7)])
+#categorical variables
+summary(df[,c(1,4,8:10)])
+
+```
+From the summary we can see the factor values, it seems that sex and region are distributed equally and not much smokers compare to the non smokers. age and number of children looks about right and there is values in a range that makes sense.
+In addition, we see low correlation (0.198) between the target variable and the other numeric explantory variable bmi. We don't see any pattern in the relation between the two variables. We see number of extreme values with high bmi and/or charges.
+
+
+-    Determine if the response variable (charges) has an acceptably normal distribution.
+
+```{r}
+# Density plot to check the distribution
+ggpubr::ggdensity(df$charges,  fill = "lightgray", add = "mean",  xlab = "charges variable density")
+# Shapiro Test to asses that data on response variable is normaly distribution
+# H0 = Data is normally distributed
+# H1 = Data is not normally distributed
+# alfa = 0.05
+shapiro.test(df$charges)
+```
+
+As we can see, the density plot shows that data is not normally distributed. To asses that, we can use one of many statistical tests that check normality on data. In this case, we use Shapiro test.
+
+The result of the Shapiro test shows that data in variable **charges** is not normally distributed since *p-value* is less than the significance level (0.05) so we reject the null hypothesis (data is normally distributed) and we conclude that data is not normally distributed (alternative hypothesis)
+
+
+
+```{r}
+par(mfrow=c(1,1))
+acf(df$charges)
+dwtest(df$charges~1)
+# a graph shows auto correlation, we have the blue threshold and because the lines are not in the threshold means there is correlation within the data in the column we check. we can always create new variable with less observations and compare just 100 observation for example.
+#BUT the solution for would better be to RANDOM THE ORDER OF THE OBSERVATIONS.
+#here we can see the data is not correlated and now we can do the shapiro test - the first line is always one and the rest is in the threshold so it's independent
+```
+Address tests to discard serial correlation:
+In the acf (auto correlation function) we can see from the graph that the data is not correlated where we have the blue threshold and all lines are within the threshold, we do see that there is one or two lines that crosses the threshold but just in a little bit so we leave it as it is without random the order of the observations. In addition we address Durbin-Watson test to check whether true autocorrelation is greater or not than 0. We see p-value 0.5183, thus we don't reject the null hypothesis and say that true autocorrelation is not greater than 0.
+
+-   Preliminary exploratory analysis to describe the relationships observed has to be
+    undertaken. [**Eliya**]
+```{r}
+library(DataExplorer)
+create_report(df, y= "charges")
+```
+#THIS IS NOTE TO OURSELFS - there this libray which basically creates a whole report of the explenatory data analysis, we can consider if we want to put into as EDA is requested twice in the project statement, once at data preparation and another on the tasks
