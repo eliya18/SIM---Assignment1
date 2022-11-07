@@ -8,26 +8,19 @@ Name: Eliya Tiram
 
 • ~~Removing duplicate or irrelevant observations [**Eliya**]~~
 
-• ~~Fix structural errors (usually coding errors, trailing blanks in labels, lower/upper case
-consistency, etc.). [**Eliya**]~~
+• ~~Fix structural errors (usually coding errors, trailing blanks in labels, lower/upper case consistency, etc.). [**Eliya**]~~
 
-~~• Check data types. Dates should be coded as such and factors should have level names (if
-possible, levels have to be set and clarify the variable they belong to). This point is sometimes included under data transformation process. New derived variables are to be produced sometimes scaling and/or normalization (range/shape changes to numeric variables) or category regrouping for factors (nominal/ordinal). [**Eliya**]~~
+~~• Check data types. Dates should be coded as such and factors should have level names (if possible, levels have to be set and clarify the variable they belong to). This point is sometimes included under data transformation process. New derived variables are to be produced sometimes scaling and/or normalization (range/shape changes to numeric variables) or category regrouping for factors (nominal/ordinal). [**Eliya**]~~
 
 ::: {style="color: red;"}
-
 • Filter unwanted outliers. Univariate and multivariate outliers have to be highlighted.Remove register/erase values and set NA for univariate outiers. [**Eliya**]
 :::
 
 ::: {style="color: red;"}
-
 • Handle missing data: figure out why the data is missing. Data imputation is to be considered when the aim is modelling (imputation has to be validated). [**Achraf**]
 :::
 
-• Data validation is mixed of \'common sense and sector knowledge\': Does the data make
-sense? Does the data follow the appropriate rules for its field? Does it prove or disprove the
-working theory, or bring any insight to light? Can you find trends in the data to help you form
-a new theory? If not, is that because of a data quality issue? [**Achraf**]
+• Data validation is mixed of 'common sense and sector knowledge': Does the data make sense? Does the data follow the appropriate rules for its field? Does it prove or disprove the working theory, or bring any insight to light? Can you find trends in the data to help you form a new theory? If not, is that because of a data quality issue? [**Achraf**]
 
 # TASKS
 
@@ -39,30 +32,23 @@ a new theory? If not, is that because of a data quality issue? [**Achraf**]
 
 -   Detect univariant and multivariant outliers, errors and missing values (if any) and apply animputation technique if needed. [Achraf]
 
--   Preliminary exploratory analysis to describe the relationships observed has to be
-    undertaken. [Eliya]
+-   Preliminary exploratory analysis to describe the relationships observed has to be undertaken. [Eliya]
 
--    If you can improve linear relations or limit the effect of influential data, you must consider the suitable transformations for variables. [Achraf]
+-   If you can improve linear relations or limit the effect of influential data, you must consider the suitable transformations for variables. [Achraf]
 
--   Apart from the original factor variables, you can consider other categorical variables that
-    can be defined from categorized numeric variables. [Eliya]
+-   Apart from the original factor variables, you can consider other categorical variables that can be defined from categorized numeric variables. [Eliya]
 
--   You must take into account possible interactions between categorical and numerical
-    variables. [Eliya]
+-   You must take into account possible interactions between categorical and numerical variables. [Eliya]
 
--   When building the model, you should study the presence of multicollinearity and try to
-    reduce their impact on the model for easier interpretation. [Achraf]
+-   When building the model, you should study the presence of multicollinearity and try to reduce their impact on the model for easier interpretation. [Achraf]
 
--   You should build the model using a technique for selecting variables (removing no
-    significant predictors and/or stepwise selection of the best models). [Achraf]
+-   You should build the model using a technique for selecting variables (removing no significant predictors and/or stepwise selection of the best models). [Achraf]
 
--   The validation of the model has to be done with graphs and / or suitable tests to verify
-    model assumptions. [Achraf]
+-   The validation of the model has to be done with graphs and / or suitable tests to verify model assumptions. [Achraf]
 
 -   You must include the study of unusual and / or influential data. [Achraf]
 
--    The resulting model should be interpreted in terms of the relationships of selected
-    predictors and its effect on the response variable. [Eliya]
+-   The resulting model should be interpreted in terms of the relationships of selected predictors and its effect on the response variable. [Eliya]
 
 # ASSIGNMENT
 
