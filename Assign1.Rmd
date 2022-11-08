@@ -52,7 +52,8 @@ theory? If not, is that because of a data quality issue? [**Achraf**]
 -   Address tests to discard serial correlation. [**Eliya**] *DONE*
 
 -   ~~Detect univariant and multivariant outliers, errors and missing
-    values (if any) and apply animputation technique if needed.~~ [Achraf]
+    values (if any) and apply animputation technique if needed.~~
+    [Achraf]
 
 -   Preliminary exploratory analysis to describe the relationships
     observed has to be undertaken. [**Eliya**]
@@ -181,7 +182,6 @@ colSums(is.na(df))
 
 ```
 
-
 ##### Multivariate
 
 ```{r}
@@ -213,7 +213,6 @@ aq.plot(df[,c(3,7)],delta = qchisq(0.95,df=ncol(x)),alpha = 0.05)
 
 ```
 
-
 -   Detect univariant and multivariant outliers, errors and missing
     values (if any) and apply animputation technique if needed. [Achraf]
 
@@ -229,10 +228,9 @@ colSums(is.na(df))
 
 ```
 
-
 #### Data Validation
 
-
+In this section I am going to check if variables "make sense"
 
 ### Explanatory data analysis
 
@@ -278,6 +276,23 @@ is not normally distributed since *p-value* is less than the
 significance level (0.05) so we reject the null hypothesis (data is
 normally distributed) and we conclude that data is not normally
 distributed (alternative hypothesis)
+
+Let's try to apply the log transformation
+
+```{r}
+# Density plot to check the distribution
+ggpubr::ggdensity(log(df$charges),  fill = "lightgray", add = "mean",  xlab = "charges variable density")
+
+# Shapiro Test to asses that data on response variable is normaly distribution
+# H0 = Data is normally distributed
+# H1 = Data is not normally distributed
+# alfa = 0.05
+shapiro.test(log(df$charges))
+
+```
+
+The null hypothesis can be still rejected so data still not being not
+normally distributed.
 
 ```{r}
 par(mfrow=c(1,1))
@@ -328,21 +343,64 @@ observations were fit into each age group.
 
 
 par(mfrow=c(1,1))
+
 plot(df$charges,df$bmi,pch=19)
 
 
 #text(df$charges,df$bmi,label=row.names(df),col="darkgreen",adj=1.5)
 
-mc<-lm(df$charges~df$bmi)
-summary(mc)
+m1<-lm(df$charges~df$bmi)
+summary(m1)
 
-lines(df$bmi,fitted(mc),col="red")
+lines(df$bmi,fitted(m1),col="red")
 
-# the RSquared is very low and there is a lot of residual standard error. The model is not performing very good as for now so maybe studying influential data could help to improve it 
+par(mfrow=c(2,2))
+plot(m1)
+par(mfrow=c(1,1))
+```
+
+Looking at the summary of the model, the RSquared is very low and there
+is a lot of residual standard error.
+
+If we study the residual error looking at the plots we can see that the
+data is not following a normal distribution since there are deviations
+of the line (Normal Q-Q plot). Also there are a lot of sparsity in the
+variance (Scale-Location plot).
+
+Let's try to do some transformations to the data.
+
+```{r}
+
+par(mfrow=c(1,1))
+# apply logarithm to the charges variable
+plot(log(df$charges),df$bmi,pch=19)
+
+m2 <- lm(log(df$charges)~df$bmi)
+lines(df$bmi, fitted(m2), color="red")
+summary(m2)
+
+par(mfrow=c(2,2))
+plot(m2)
+par(mfrow=c(1,1))
+```
+
+The model is still not performing very well. However if we check the
+study of residuals we can see that it results in an improvement.
+
+The normal Q-Q plot still have a deviation but is that big as the m1 and
+if we check the Scale-Location of the standard residuals the variance is
+better.
+
+Maybe, removing influential data the results can be improved.
+
+```{r}
 
 library(car)
 
-cooksd <- cooks.distance(mc)
+influencePlot(m2)
+# there are a lot of influential data
+
+cooksd <- cooks.distance(m2)
 sample_size <- nrow(df)
 
 Boxplot(cooks.distance(mc),col="darkgreen")
@@ -351,26 +409,15 @@ influential
 
 df_ni <- df[-influential, ]
 par(mfrow=c(1,1))
-plot(df_ni$charges,df_ni$bmi,pch=19,col="darkgreen")
+plot(log(df_ni$charges),df_ni$bmi,pch=19,col="darkgreen")
 
-mc_ni<-lm(df_ni$charges~df_ni$bmi)
+m3<-lm(log(df_ni$charges)~df_ni$bmi)
 
-lines(df_ni$charges,fitted(mc_ni),col="red")
+lines(df_ni$charges,fitted(m3),col="red")
 
-summary(mc_ni)
+summary(m3)
 
-# plot3 <- ggplot(data = df, aes(x = bmi, y = charges)) +
-#         geom_point() + 
-#         geom_smooth(method = mc) +
-#         xlim(0, 20) + ylim(0, 220) + 
-#         ggtitle("Before")
-# plot4 <- ggplot(data = df_ni, aes(x = bmi, y = charges)) +
-#         geom_point() + 
-#         geom_smooth(method = mc) +
-#         xlim(0, 20) + ylim(0, 220) + 
-#         ggtitle("After")
-# 
-# gridExtra::grid.arrange(plot3, plot4, ncol=2)
-
-#there are a lot of ifluentential data that could be removed
+par(mfrow=c(2,2))
+plot(m3)
+par(mfrow=c(1,1))
 ```
