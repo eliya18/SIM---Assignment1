@@ -339,6 +339,32 @@ observations were fit into each age group.
 
 ### Building the model
 
+-   If you can improve linear relations or limit the effect of
+    influential data, you must consider the suitable transformations for
+    variables. [**Achraf**]
+
+-   When building the model, you should study the presence of
+    multicollinearity and try to reduce their impact on the model for
+    easier interpretation. [**Achraf**]
+
+-   You should build the model using a technique for selecting variables
+    (removing no significant predictors and/or stepwise selection of the
+    best models). [**Achraf**]
+
+-   The validation of the model has to be done with graphs and / or
+    suitable tests to verify model assumptions. [**Achraf**]
+
+-   You must include the study of unusual and / or influential data.
+    [**Achraf**]
+
+#### Asses multicollinearity
+
+```{r}
+
+```
+
+#### First model
+
 ```{r}
 
 
@@ -357,6 +383,7 @@ lines(df$bmi,fitted(m1),col="red")
 par(mfrow=c(2,2))
 plot(m1)
 par(mfrow=c(1,1))
+
 ```
 
 Looking at the summary of the model, the RSquared is very low and there
@@ -368,6 +395,8 @@ of the line (Normal Q-Q plot). Also there are a lot of sparsity in the
 variance (Scale-Location plot).
 
 Let's try to do some transformations to the data.
+
+#### Transformation
 
 ```{r}
 
@@ -382,6 +411,7 @@ summary(m2)
 par(mfrow=c(2,2))
 plot(m2)
 par(mfrow=c(1,1))
+
 ```
 
 The model is still not performing very well. However if we check the
@@ -390,6 +420,8 @@ study of residuals we can see that it results in an improvement.
 The normal Q-Q plot still have a deviation but is that big as the m1 and
 if we check the Scale-Location of the standard residuals the variance is
 better.
+
+#### Inlfuential data
 
 Maybe, removing influential data the results can be improved.
 
@@ -400,24 +432,56 @@ library(car)
 influencePlot(m2)
 # there are a lot of influential data
 
-cooksd <- cooks.distance(m2)
-sample_size <- nrow(df)
-
-Boxplot(cooks.distance(mc),col="darkgreen")
-influential <- as.numeric(names(cooksd)[(cooksd > (4/sample_size))])
-influential
-
-df_ni <- df[-influential, ]
-par(mfrow=c(1,1))
-plot(log(df_ni$charges),df_ni$bmi,pch=19,col="darkgreen")
-
-m3<-lm(log(df_ni$charges)~df_ni$bmi)
-
-lines(df_ni$charges,fitted(m3),col="red")
+# Manually removing influential points
+ll <- which(rownames(df) %in% c("1048", "848", "1318", "443")); ll
+m3 <- lm(log(charges)~bmi, data=df[-ll,])
 
 summary(m3)
-
 par(mfrow=c(2,2))
 plot(m3)
 par(mfrow=c(1,1))
+
+influencePlot(m3)
+
+# With cooks distance
+cooksD <- cooks.distance(m2)
+n <- nrow(df)
+plot(cooksD, main = "Cooks Distance for Influential Obs")
+abline(h = 4/n, lty = 2, col = "steelblue") # add cutoff line
+
+influential_obs <- as.numeric(names(cooksD)[(cooksD > (4/n))])
+influential_obs
+m4 <- lm(log(charges)~bmi, data=df[-influential_obs,])
+summary(m4)
+
+par(mfrow=c(2,2))
+plot(m4)
+par(mfrow=c(1,1))
+
+influencePlot(m4)
+```
+
+```{r}
+#create scatterplot with outliers present
+outliers_present <- ggplot(data = df, aes(x = bmi, y = log(charges))) +
+  geom_point() +
+  geom_smooth(method = lm) +
+#  ylim(0, 200) +
+  ggtitle("Outliers Present")
+
+#create scatterplot with outliers removed
+outliers_removed <- ggplot(data = df[-influential_obs,], aes(x = bmi, y = log(charges))) +
+  geom_point() +
+  geom_smooth(method = lm) +
+#  ylim(0, 200) +
+  ggtitle("Outliers Removed")
+
+#plot both scatterplots side by side
+gridExtra::grid.arrange(outliers_present, outliers_removed, ncol = 2)
+```
+
+#### Validation of the data
+
+```{r}
+
 ```
