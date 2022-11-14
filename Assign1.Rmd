@@ -357,12 +357,6 @@ observations were fit into each age group.
 -   You must include the study of unusual and / or influential data.
     [**Achraf**]
 
-#### Asses multicollinearity
-
-```{r}
-
-```
-
 #### First model
 
 ```{r}
@@ -375,7 +369,7 @@ plot(df$charges,df$bmi,pch=19)
 
 #text(df$charges,df$bmi,label=row.names(df),col="darkgreen",adj=1.5)
 
-m1<-lm(df$charges~df$bmi)
+m1<-lm(charges~bmi+age+children, data = df)
 summary(m1)
 
 lines(df$bmi,fitted(m1),col="red")
@@ -394,9 +388,41 @@ data is not following a normal distribution since there are deviations
 of the line (Normal Q-Q plot). Also there are a lot of sparsity in the
 variance (Scale-Location plot).
 
+#### Asses multicollinearity
+
+Maybe there is multicollinearity that is causing bad results
+
+```{r}
+car::vif(m1)
+```
+
+The vif values are low (less than 5) so there aren't problems of
+multidisciplinary.
+
 Let's try to do some transformations to the data.
 
 #### Transformation
+
+```{r}
+library(MASS)
+
+boxcox(charges~bmi+age+children, data = df)
+```
+
+The boxplots shows that the lambda values are close to 0 so a
+logarithmic transformation to the target variable should help to improve
+the results
+
+```{r}
+
+# (only for numerical variables)
+
+boxTidwell(log(charges) ~ bmi + age +  I(children+0.5), data=df)
+
+# poly(age,3) for adding ortogonal polynomials
+```
+
+-   TODO: check transformations for explanatory variables
 
 ```{r}
 
@@ -404,7 +430,7 @@ par(mfrow=c(1,1))
 # apply logarithm to the charges variable
 plot(log(df$charges),df$bmi,pch=19)
 
-m2 <- lm(log(df$charges)~df$bmi)
+m2 <- lm(log(charges)~bmi+ age+children, data = df)
 lines(df$bmi, fitted(m2), color="red")
 summary(m2)
 
@@ -421,6 +447,20 @@ The normal Q-Q plot still have a deviation but is that big as the m1 and
 if we check the Scale-Location of the standard residuals the variance is
 better.
 
+```{r}
+avPlots(m2)
+```
+
+The partial regressions plots shows that all regresors have two big
+clusters of data.
+
+```{r}
+AIC(m1,m2)
+```
+
+The AIC test shows that model 2 is performing much better than model 1
+so we will continue with it.
+
 #### Inlfuential data
 
 Maybe, removing influential data the results can be improved.
@@ -434,7 +474,7 @@ influencePlot(m2)
 
 # Manually removing influential points
 ll <- which(rownames(df) %in% c("1048", "848", "1318", "443")); ll
-m3 <- lm(log(charges)~bmi, data=df[-ll,])
+m3 <- lm(log(charges)~bmi+age+children, data=df[-ll,])
 
 summary(m3)
 par(mfrow=c(2,2))
@@ -451,7 +491,7 @@ abline(h = 4/n, lty = 2, col = "steelblue") # add cutoff line
 
 influential_obs <- as.numeric(names(cooksD)[(cooksD > (4/n))])
 influential_obs
-m4 <- lm(log(charges)~bmi, data=df[-influential_obs,])
+m4 <- lm(log(charges)~bmi+age+children, data=df[-influential_obs,])
 summary(m4)
 
 par(mfrow=c(2,2))
@@ -463,24 +503,55 @@ influencePlot(m4)
 
 ```{r}
 #create scatterplot with outliers present
-outliers_present <- ggplot(data = df, aes(x = bmi, y = log(charges))) +
+outliers_present <- ggplot(data = df, aes(x = bmi + age + children, y = log(charges))) +
   geom_point() +
   geom_smooth(method = lm) +
 #  ylim(0, 200) +
-  ggtitle("Outliers Present")
+  ggtitle("Ifluential data Present")
 
 #create scatterplot with outliers removed
-outliers_removed <- ggplot(data = df[-influential_obs,], aes(x = bmi, y = log(charges))) +
+outliers_removed <- ggplot(data = df[-influential_obs,], aes(x = bmi + age + children, y = log(charges))) +
   geom_point() +
   geom_smooth(method = lm) +
 #  ylim(0, 200) +
-  ggtitle("Outliers Removed")
+  ggtitle("Influential data Removed")
 
 #plot both scatterplots side by side
 gridExtra::grid.arrange(outliers_present, outliers_removed, ncol = 2)
 ```
 
-#### Validation of the data
+#### Adding factors (very important)
+
+-   Check that meaning of a factor could not be related to the numerical
+    variables so one should be used.
+
+-   AIC test to compare
+
+#### Adding interactions (very imporant)
+
+-   Interactions between all factors (not a problem)
+
+-   Double interactions (*ONLY*)
+
+    -   Factor x factor
+
+    -   Factor x numerical
+
+-   plot **AllEffects** of partial regression to check what the model is
+    doing with the interactions
+
+#### Validation of the model
+
+-   Address residual outliers, influential data
+
+-   It should be robust for exploratory variables (iterations)
+
+-   Check if the models could be improved in some way
+
+-   We should not expect a great coefficient of determination at the end
+    (LIDIA)
+
+    -   Maybe: Some critical explanatory is missing
 
 ```{r}
 
