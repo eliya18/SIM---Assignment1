@@ -141,25 +141,35 @@ unique(df)
 
 ##### Univariate
 
+We can see extreme outliers for both charges and bmi, since it's just serval observation it might be the case that for a certain bmi, age or smokers the charge value is raising by a lot compare to the rest. from looking at the high value of column charges it can be seen that all are smokers and mid-high bmi, also some of the ages I see are relatively high.
+For the target variable we can see there is no lower bound for extreme and mild outliers, it's also can be seen on the Boxplot().
+For variable bmi, mild outliers on the upper bound and no sever upper bound outliers and not lower bound outliers.
+
 ```{r}
 
 par(mfrow=c(1,2))
 Boxplot(df$charges)
 Boxplot(df$bmi)
-#we can see extreme outliers for both charges and bmi, since it's just serval observation it might be the case that for a certain bmi, age or smokers the charge value is raising by a lot compare to the rest. from looking at the high value of column charges it can be seen that all are smokers and mid-high bmi, also some of the ages I see are relatively high.
-#infering from graphs
-
+Boxplot(df$age)
+Boxplot(df$children)
+#
 
 # treat outliers for charges variable
 sevout<-quantile(df$charges,0.75,na.rm=TRUE)+3*(quantile(df$charges,0.75,na.rm=TRUE)-quantile(df$charges,0.25,na.rm=TRUE))
 sevout
+sev_out_lower <- quantile(df$charges,0.25,na.rm=TRUE)-3*(quantile(df$charges,0.75,na.rm=TRUE)-quantile(df$charges,0.25,na.rm=TRUE))
 
 mist<-quantile(df$charges,0.75,na.rm=TRUE)+1.5*(quantile(df$charges,0.75,na.rm=TRUE)-quantile(df$charges,0.25,na.rm=TRUE))
 mist
 
+mist_out_lower <- quantile(df$charges,0.25,na.rm=TRUE)-1.5*(quantile(df$charges,0.75,na.rm=TRUE)-quantile(df$charges,0.25,na.rm=TRUE))
+
 # get list of outliers
 loutse<-which(df$charges>sevout);length(loutse)
 loutmist <-which(df$charges>mist);length(loutmist)
+low_out_sever <- which(df$charges<sev_out_lower);low_out_sever
+low_out_mild <- which(df$charges<mist_out_lower);low_out_mild
+
 table(loutse)
 table(loutmist)
 
@@ -173,21 +183,31 @@ abline(h=mist,col="yellow")
 df[loutse, c(7)] <- median(df[,c(7)])
 
 # check severe outliers for bmi atrribute
-sevout_bmi<-quantile(df$bmi,0.75,na.rm=TRUE)+3*(quantile(df$bmi,0.75,na.rm=TRUE)-quantile(df$bmi,0.25,na.rm=TRUE))
-sevout_bmi
+sevout_bmi<-quantile(df$bmi,0.75,na.rm=TRUE)+3*(quantile(df$bmi,0.75,na.rm=TRUE)-quantile(df$bmi,0.25,na.rm=TRUE));sevout_bmi
+mist_bmi <- quantile(df$bmi,0.75,na.rm=TRUE)+1.5*(quantile(df$bmi,0.75,na.rm=TRUE)-quantile(df$bmi,0.25,na.rm=TRUE))
 loutse_bmi<-which(df$bmi>sevout_bmi);length(loutse_bmi) # no severe outliers for bmi
 colSums(is.na(df))
+serout_lower_bmi <- quantile(df$bmi,0.25,na.rm=TRUE)-3*(quantile(df$bmi,0.75,na.rm=TRUE)-quantile(df$bmi,0.25,na.rm=TRUE));serout_lower
+mist_lower_bmi <- quantile(df$bmi,0.25,na.rm=TRUE)-1.5*(quantile(df$bmi,0.75,na.rm=TRUE)-quantile(df$bmi,0.25,na.rm=TRUE));serout_lower
 
-
+up_sever_bmi <- which(df$bmi > sevout_bmi); up_sever_bmi
+up_mild_bmi <- which(df$bmi > mist_bmi); up_mild_bmi
+low_sever_bmi <- which(df$bmi < serout_lower_bmi); low_sever_bmi
+low_mild_bmi <- which(df$bmi < mist_lower_bmi); low_mild_bmi
 
 ```
 
 ##### Multivariate
 
-```{r}
+When looking at the results of the multivariate outliers we see that all the highest charges are for smokers for 21 out 26 identified outliers. In addition, the rest of 5 observations has high bmi or 5 children, which is the highest value in the data. Also, we see observations number 33, 167, where the ages of women are 19 and 20 and it makes no sense to have 5 children at this age. Another observation in the outliers is the highest bmi (53.130) with a relativity low charges (1163.463 - 10th low out of all observations).
 
-# ? Maybe we should include age and children... I am not sure of this.
-res.out<-Moutlier(df[,c(7,3)],quantile=0.975)
+From general look at the data we see observations number: *(WE CAN ADD THIS PART IN DATA ANALIYSIS EVEN THOUGH SOME OF THESE OBSERVATIONS COMES AS OUTLIERS )*
+370, 1096, 1205 age (18 with at least 3 children)
+33, 1196 (age 19 with 5 and 3 children)
+167,985 (age 20 with 5 children)
+
+```{r}
+res.out<-Moutlier(df[,c(7,3,1,4)],quantile=0.975)
 str(res.out)
 plot(df$charges,df$bmi)
 res.out$cutoff
@@ -198,7 +218,7 @@ ddf <-df[which((res.out$md > res.out$cutoff) & (res.out$rd > res.out$cutoff)),]
 summary(df)
 summary(ddf)
 #View(ddf)
-##When looking at the results of the multivariate outliers we see that all the highest charges are for smokers for 43 out 45 identified outliers. In addition, there are 2 more observations where the objects are not smokers but they have a very high bmi, one of them is the highest value in the data set and the other is not too far from it.
+
 plot( res.out$md, res.out$rd )
 #text(res.out$md, res.out$rd, labels=rownames(df),adj=1, cex=0.5)
 abline(h=res.out$cutoff, col="red")
@@ -208,8 +228,6 @@ res.out$cutoff^2
 qchisq(0.975,4)
 
 #aq.plot(df[,c(3,7)],delta = qchisq(0.95,df=ncol(x)),alpha = 0.05)
-
-
 
 ```
 
@@ -346,15 +364,14 @@ once at data preparation and another on the tasks [Achraf: For me OK!]
     categorical variables that can be defined from categorized numeric
     variables. [**Eliya**]
 
-```{r}
-df$age_range <- cut(df$age, breaks = quantile(df$age,probs = c(0,0.25,0.5,0.75,1)), include.lowest = T)
-summary(df)
-```
-
 We have created a new variable called age_range where we divide the ages
 into 4 groups according to the 4 quantiles. From the summary (and the
 new column in the data set) we see 4 groups of ages and how many
 observations were fit into each age group.
+```{r}
+df$age_range <- cut(df$age, breaks = quantile(df$age,probs = c(0,0.25,0.5,0.75,1)), include.lowest = T)
+summary(df)
+```
 
 ### Building the model
 
