@@ -8,6 +8,20 @@ editor_options:
     wrap: 72
 ---
 
+## Final steps.
+
+1.  Remove severe outliers in changes and make a revision on univariate
+    outliers [Eliya]
+2.  Choose a multivariate outlier removal [Eliya]
+3.  Data validation [Achraf]
+4.  Exploratory analisis with some plots and catdesc and condes [Eliya]
+5.  Take a look to transformations [Achraf]
+6.  Weight the age variable to obtain a balanced model [Achraf]
+7.  Make the model validations arguments of why we choose the final
+    model and what we think that could be improved but is not in our
+    hands + Graphs of all Effects [Both]
+8.  Add more reasoning to all steps. [Both]
+
 # DATA PREPARATION
 
 • ~~Removing duplicate or irrelevant observations [**Eliya**]~~ DONE
@@ -141,9 +155,15 @@ unique(df)
 
 ##### Univariate
 
-We can see extreme outliers for both charges and bmi, since it's just serval observation it might be the case that for a certain bmi, age or smokers the charge value is raising by a lot compare to the rest. from looking at the high value of column charges it can be seen that all are smokers and mid-high bmi, also some of the ages I see are relatively high.
-For the target variable we can see there is no lower bound for extreme and mild outliers, it's also can be seen on the Boxplot().
-For variable bmi, mild outliers on the upper bound and no sever upper bound outliers and not lower bound outliers.
+We can see extreme outliers for both charges and bmi, since it's just
+serval observation it might be the case that for a certain bmi, age or
+smokers the charge value is raising by a lot compare to the rest. from
+looking at the high value of column charges it can be seen that all are
+smokers and mid-high bmi, also some of the ages I see are relatively
+high. For the target variable we can see there is no lower bound for
+extreme and mild outliers, it's also can be seen on the Boxplot(). For
+variable bmi, mild outliers on the upper bound and no sever upper bound
+outliers and not lower bound outliers.
 
 ```{r}
 
@@ -187,8 +207,8 @@ sevout_bmi<-quantile(df$bmi,0.75,na.rm=TRUE)+3*(quantile(df$bmi,0.75,na.rm=TRUE)
 mist_bmi <- quantile(df$bmi,0.75,na.rm=TRUE)+1.5*(quantile(df$bmi,0.75,na.rm=TRUE)-quantile(df$bmi,0.25,na.rm=TRUE))
 loutse_bmi<-which(df$bmi>sevout_bmi);length(loutse_bmi) # no severe outliers for bmi
 colSums(is.na(df))
-serout_lower_bmi <- quantile(df$bmi,0.25,na.rm=TRUE)-3*(quantile(df$bmi,0.75,na.rm=TRUE)-quantile(df$bmi,0.25,na.rm=TRUE));serout_lower
-mist_lower_bmi <- quantile(df$bmi,0.25,na.rm=TRUE)-1.5*(quantile(df$bmi,0.75,na.rm=TRUE)-quantile(df$bmi,0.25,na.rm=TRUE));serout_lower
+serout_lower_bmi <- quantile(df$bmi,0.25,na.rm=TRUE)-3*(quantile(df$bmi,0.75,na.rm=TRUE)-quantile(df$bmi,0.25,na.rm=TRUE));serout_lower_bmi
+mist_lower_bmi <- quantile(df$bmi,0.25,na.rm=TRUE)-1.5*(quantile(df$bmi,0.75,na.rm=TRUE)-quantile(df$bmi,0.25,na.rm=TRUE));mist_lower_bmi
 
 up_sever_bmi <- which(df$bmi > sevout_bmi); up_sever_bmi
 up_mild_bmi <- which(df$bmi > mist_bmi); up_mild_bmi
@@ -199,12 +219,19 @@ low_mild_bmi <- which(df$bmi < mist_lower_bmi); low_mild_bmi
 
 ##### Multivariate
 
-When looking at the results of the multivariate outliers we see that all the highest charges are for smokers for 21 out 26 identified outliers. In addition, the rest of 5 observations has high bmi or 5 children, which is the highest value in the data. Also, we see observations number 33, 167, where the ages of women are 19 and 20 and it makes no sense to have 5 children at this age. Another observation in the outliers is the highest bmi (53.130) with a relativity low charges (1163.463 - 10th low out of all observations).
+When looking at the results of the multivariate outliers we see that all
+the highest charges are for smokers for 21 out 26 identified outliers.
+In addition, the rest of 5 observations has high bmi or 5 children,
+which is the highest value in the data. Also, we see observations number
+33, 167, where the ages of women are 19 and 20 and it makes no sense to
+have 5 children at this age. Another observation in the outliers is the
+highest bmi (53.130) with a relativity low charges (1163.463 - 10th low
+out of all observations).
 
-From general look at the data we see observations number: *(WE CAN ADD THIS PART IN DATA ANALIYSIS EVEN THOUGH SOME OF THESE OBSERVATIONS COMES AS OUTLIERS )*
-370, 1096, 1205 age (18 with at least 3 children)
-33, 1196 (age 19 with 5 and 3 children)
-167,985 (age 20 with 5 children)
+From general look at the data we see observations number: *(WE CAN ADD
+THIS PART IN DATA ANALIYSIS EVEN THOUGH SOME OF THESE OBSERVATIONS COMES
+AS OUTLIERS )* 370, 1096, 1205 age (18 with at least 3 children) 33,
+1196 (age 19 with 5 and 3 children) 167,985 (age 20 with 5 children)
 
 ```{r}
 res.out<-Moutlier(df[,c(7,3,1,4)],quantile=0.975)
@@ -368,6 +395,7 @@ We have created a new variable called age_range where we divide the ages
 into 4 groups according to the 4 quantiles. From the summary (and the
 new column in the data set) we see 4 groups of ages and how many
 observations were fit into each age group.
+
 ```{r}
 df$age_range <- cut(df$age, breaks = quantile(df$age,probs = c(0,0.25,0.5,0.75,1)), include.lowest = T)
 summary(df)
@@ -529,7 +557,7 @@ n <- nrow(df)
 plot(cooksD, main = "Cooks Distance for Influential Obs")
 abline(h = 4/n, lty = 2, col = "steelblue") # add cutoff line
 
-# TODO: GET A BETTER THRESHOLD
+# TODO: GET A BETTER THRESHOLD ()
 influential_obs <- as.numeric(names(cooksD)[(cooksD > (4/n))])
 influential_obs
 length(influential_obs)
@@ -572,7 +600,7 @@ gridExtra::grid.arrange(outliers_present, outliers_removed, ncol = 2)
 ```{r}
 
 summary(df)
-m5 <- lm(log(charges)~log(bmi)+age+children+sex+smoker+region+f.sex+f.smoker+f.region+age_range, data=df[-influential_obs,])
+m5 <- lm(log(charges)~log(bmi)+age+children+f.sex+f.smoker+f.region+age_range, data=df[-influential_obs,])
 ```
 
 ```{r}
@@ -580,7 +608,7 @@ summary(m5)
 Anova(m5)
 
 #remove age range
-m6 <- lm(log(charges)~log(bmi)+age+children+sex+smoker+region+f.sex+f.smoker+f.region+age_range, data=df[-influential_obs,])
+m6 <- lm(log(charges)~log(bmi)+age+children+f.sex+f.smoker+f.region, data=df[-influential_obs,])
 
 anova(m6, m5)
 # models are not equivalent.
@@ -616,11 +644,18 @@ par( mfrow = c(1,1))
     doing with the interactions
 
 ```{r}
-m8 <- lm(log(charges)~log(bmi)+age+children * (sex+smoker+region+f.sex+f.smoker+f.region+age_range), data=df[-influential_obs,])
+m8 <- lm(log(charges)~log(bmi)+age+children * (f.sex+f.smoker+f.region+age_range), data=df[-influential_obs,])
 
 summary(m8)
 
+
+par( mfrow = c(2,2))
+plot( m8, id.n=0 )
+par( mfrow = c(1,1))
+
+#?lm
 avPlots(m8)
+#library(effects)
 #plot(allEffects(m8))
 ```
 
@@ -635,8 +670,10 @@ avPlots(m8)
 -   We should not expect a great coefficient of determination at the end
     (LIDIA)
 
-    -   Maybe: Some critical explanatory is missing
+    -   Maybe: Some critical explanatory variable that is missing
 
 ```{r}
+library(effects)
+?allEffects
 
 ```
