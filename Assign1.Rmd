@@ -11,10 +11,10 @@ editor_options:
 ## Final steps.
 
 1.  Remove severe outliers in changes and make a revision on univariate
-    outliers [Eliya]
-2.  Choose a multivariate outlier removal [Eliya]
+    outliers [Eliya] *Done*
+2.  Choose a multivariate outlier removal [Eliya] *Done*
 3.  Data validation [Achraf]
-4.  Exploratory analisis with some plots and catdesc and condes [Eliya]
+4.  Exploratory analisis with some plots and catdesc and condes [Eliya] *almost done*
 5.  Take a look to transformations [Achraf]
 6.  Weight the age variable to obtain a balanced model [Achraf]
 7.  Make the model validations arguments of why we choose the final
@@ -163,7 +163,7 @@ smokers and mid-high bmi, also some of the ages I see are relatively
 high. For the target variable we can see there is no lower bound for
 extreme and mild outliers, it's also can be seen on the Boxplot(). For
 variable bmi, mild outliers on the upper bound and no sever upper bound
-outliers and not lower bound outliers.
+outliers and not lower bound outliers. We decided to delete the 6 univariate outliers since the charges are very high, even though all 6 observation are smokers, there are 274 smokers in the dataset and their charges values are not as high as the extreme outliers observations
 
 ```{r}
 
@@ -194,13 +194,12 @@ table(loutse)
 table(loutmist)
 
 # see outliers
-boxplot(df$charges)
+Boxplot(df$charges)
 abline(h=sevout,col="red")
 abline(h=mist,col="yellow")
 
-# Since there are only 6 severe outliers, the observations will be replaced for the median value
-
-df[loutse, c(7)] <- median(df[,c(7)])
+# Since there are only 6 severe outliers, we will remove them from the dataset,  
+df <- df[-which(df$charges >= sevout),]
 
 # check severe outliers for bmi atrribute
 sevout_bmi<-quantile(df$bmi,0.75,na.rm=TRUE)+3*(quantile(df$bmi,0.75,na.rm=TRUE)-quantile(df$bmi,0.25,na.rm=TRUE));sevout_bmi
@@ -218,43 +217,30 @@ low_mild_bmi <- which(df$bmi < mist_lower_bmi); low_mild_bmi
 ```
 
 ##### Multivariate
-
-When looking at the results of the multivariate outliers we see that all
-the highest charges are for smokers for 21 out 26 identified outliers.
-In addition, the rest of 5 observations has high bmi or 5 children,
-which is the highest value in the data. Also, we see observations number
-33, 167, where the ages of women are 19 and 20 and it makes no sense to
-have 5 children at this age. Another observation in the outliers is the
-highest bmi (53.130) with a relativity low charges (1163.463 - 10th low
-out of all observations).
-
-From general look at the data we see observations number: *(WE CAN ADD
-THIS PART IN DATA ANALIYSIS EVEN THOUGH SOME OF THESE OBSERVATIONS COMES
-AS OUTLIERS )* 370, 1096, 1205 age (18 with at least 3 children) 33,
-1196 (age 19 with 5 and 3 children) 167,985 (age 20 with 5 children)
+For the multivariate outliers, we have chosen the quantile to be a very high value so outliers we get are very extreme compare to our values in the dataset.
+Observation number 1048 is the multivatiate outlier we have got and it's indeed a very high value of charge and bmi.
+Since this observation is so extreme we will remove it from the dataset. 
+We see from the plot classical Mahalanobis distance vs robust Mahalanobis distance that there is one observation (1048) that is behind the cutoff value, in addition we can indicate 3 clusters and number of observations that a bit far from the clusters, it can be suspected as influential data. We also plot charges vs bmi and we can see on the top right corner of the graph there is one observation which has high charge and bmi.
 
 ```{r}
-res.out<-Moutlier(df[,c(7,3,1,4)],quantile=0.975)
-str(res.out)
+res.out<-Moutlier(df[,c(7,3,1,4)],quantile=0.999)
+#str(res.out)
 plot(df$charges,df$bmi)
 res.out$cutoff
 
-quantile(res.out$md,seq(0,1,0.025))
+#quantile(res.out$md,seq(0,1,0.001))
 which((res.out$md > res.out$cutoff) & (res.out$rd > res.out$cutoff))
-ddf <-df[which((res.out$md > res.out$cutoff) & (res.out$rd > res.out$cutoff)),]
-summary(df)
-summary(ddf)
-#View(ddf)
 
 plot( res.out$md, res.out$rd )
 #text(res.out$md, res.out$rd, labels=rownames(df),adj=1, cex=0.5)
 abline(h=res.out$cutoff, col="red")
 abline(v=res.out$cutoff, col="red")
-#I NEED TO REMEMBER HOW TO INTERPETE THIS PLOT - I KNOW THAT WHATEVER ABOVE THE CUTOFF IS A MULTIVARIATE OUTLIER BUT SINCE MY EXPLANATION ABOVE WE ARE NOT GOING TO DELETE THEM OF IMPUTE THEM CAUSE WE HAVE EXPLNATION.
-res.out$cutoff^2
-qchisq(0.975,4)
+df <- df[-which(res.out$md > res.out$cutoff & res.out$rd > res.out$cutoff),]
 
+#res.out$cutoff^2
+#qchisq(0.975,4)
 #aq.plot(df[,c(3,7)],delta = qchisq(0.95,df=ncol(x)),alpha = 0.05)
+#THIS 3 LINES I THINK WE CAN DELETE
 
 ```
 
@@ -262,7 +248,7 @@ qchisq(0.975,4)
     values (if any) and apply animputation technique if needed. [Achraf]
 
 (taking into acount all features)
-
+###I THINK WE CAN DELETE THE WHILE CHUNK BELOW
 ```{r}
 res.out<-Moutlier(df[,c(1,3,4,7)],quantile=0.999)
 str(res.out)
@@ -377,9 +363,16 @@ hypothesis and say that true autocorrelation is not greater than 0.
 -   Preliminary exploratory analysis to describe the relationships
     observed has to be undertaken. [**Eliya**]
 
+Association to the target variable, we see the numeric variable age 0.301 which is the most associated but the number is quite low and it is not strong association. f.smoker is globally associated to charges, in particular, f.smoker=yes is very remarkable. 
 ```{r}
-library(DataExplorer)
-create_report(df, y= "charges")
+#library(DataExplorer)
+#create_report(df, y= "charges")
+
+library(FactoMineR)
+res.con <- condes(df[,c(1,3,4,7,8:10)], num.var = 4 , proba = 0.01 )
+res.con$quanti
+res.con$quali
+res.con$category
 ```
 
 #THIS IS NOTE TO OURSELFS - there this libray which basically creates a
