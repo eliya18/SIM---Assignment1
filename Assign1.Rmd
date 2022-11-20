@@ -14,7 +14,8 @@ editor_options:
     outliers [Eliya] *Done*
 2.  Choose a multivariate outlier removal [Eliya] *Done*
 3.  Data validation [Achraf]
-4.  Exploratory analisis with some plots and catdesc and condes [Eliya] *almost done*
+4.  Exploratory analisis with some plots and catdesc and condes [Eliya]
+    *almost done*
 5.  Take a look to transformations [Achraf]
 6.  Weight the age variable to obtain a balanced model [Achraf]
 7.  Make the model validations arguments of why we choose the final
@@ -163,7 +164,10 @@ smokers and mid-high bmi, also some of the ages I see are relatively
 high. For the target variable we can see there is no lower bound for
 extreme and mild outliers, it's also can be seen on the Boxplot(). For
 variable bmi, mild outliers on the upper bound and no sever upper bound
-outliers and not lower bound outliers. We decided to delete the 6 univariate outliers since the charges are very high, even though all 6 observation are smokers, there are 274 smokers in the dataset and their charges values are not as high as the extreme outliers observations
+outliers and not lower bound outliers. We decided to delete the 6
+univariate outliers since the charges are very high, even though all 6
+observation are smokers, there are 274 smokers in the dataset and their
+charges values are not as high as the extreme outliers observations
 
 ```{r}
 
@@ -217,10 +221,18 @@ low_mild_bmi <- which(df$bmi < mist_lower_bmi); low_mild_bmi
 ```
 
 ##### Multivariate
-For the multivariate outliers, we have chosen the quantile to be a very high value so outliers we get are very extreme compare to our values in the dataset.
-Observation number 1048 is the multivatiate outlier we have got and it's indeed a very high value of charge and bmi.
-Since this observation is so extreme we will remove it from the dataset. 
-We see from the plot classical Mahalanobis distance vs robust Mahalanobis distance that there is one observation (1048) that is behind the cutoff value, in addition we can indicate 3 clusters and number of observations that a bit far from the clusters, it can be suspected as influential data. We also plot charges vs bmi and we can see on the top right corner of the graph there is one observation which has high charge and bmi.
+
+For the multivariate outliers, we have chosen the quantile to be a very
+high value so outliers we get are very extreme compare to our values in
+the dataset. Observation number 1048 is the multivatiate outlier we have
+got and it's indeed a very high value of charge and bmi. Since this
+observation is so extreme we will remove it from the dataset. We see
+from the plot classical Mahalanobis distance vs robust Mahalanobis
+distance that there is one observation (1048) that is behind the cutoff
+value, in addition we can indicate 3 clusters and number of observations
+that a bit far from the clusters, it can be suspected as influential
+data. We also plot charges vs bmi and we can see on the top right corner
+of the graph there is one observation which has high charge and bmi.
 
 ```{r}
 res.out<-Moutlier(df[,c(7,3,1,4)],quantile=0.999)
@@ -247,24 +259,8 @@ df <- df[-which(res.out$md > res.out$cutoff & res.out$rd > res.out$cutoff),]
 -   Detect univariant and multivariant outliers, errors and missing
     values (if any) and apply animputation technique if needed. [Achraf]
 
-(taking into acount all features)
-###I THINK WE CAN DELETE THE WHILE CHUNK BELOW
-```{r}
-res.out<-Moutlier(df[,c(1,3,4,7)],quantile=0.999)
-str(res.out)
-plot(df$charges,df$bmi)
-res.out$cutoff
-
-quantile(res.out$md,seq(0,1,0.001))
-which((res.out$md > res.out$cutoff) & (res.out$rd > res.out$cutoff))
-df <-df[-c(which((res.out$md > res.out$cutoff) & (res.out$rd > res.out$cutoff))),]
-summary(df)
-
-plot( res.out$md, res.out$rd )
-#text(res.out$md, res.out$rd, labels=rownames(df),adj=1, cex=0.5)
-abline(h=res.out$cutoff, col="red")
-abline(v=res.out$cutoff, col="red")
-```
+(taking into acount all features) ###I THINK WE CAN DELETE THE WHILE
+CHUNK BELO
 
 #### Missing data
 
@@ -280,7 +276,62 @@ colSums(is.na(df))
 
 #### Data Validation
 
-In this section I am going to check if variables "make sense"
+After doing the pre processing steps where we detected and removed
+outliers, we will check if data makes sense using common sense and
+domain knowledge.
+
+```{r}
+summary(df)
+```
+
+We have ages ranging from 18 to 64, and which mi ranging from 16 to 53
+which are values that are in the following table. The balance between
+factor variable si really good. However, only 20% of the sample are
+smokers.
+
+![](https://bmicalculator.mes.fm/img/bmi-chart.png){width="583"}
+
+Let's see how the relationship between children per age.
+
+```{r}
+
+plot(df$children~df$age)
+
+```
+
+As we can see in the plot, there are individuals with age 20 that have
+from 3 to 5 children which is really strange.
+
+```{r}
+thr2five_children <- which(df$age <= 20 & df$children>2)
+
+thr2five_children
+```
+
+This observations will be removed since it's something very unlikely.
+
+```{r}
+
+df <- df[-thr2five_children,]
+```
+
+Let's check now the bmi values per age to see if there is any weird
+case:
+
+<https://patient.info/doctor/bmi-calculator-calculator>
+
+```{r}
+plot(df$bmi~df$age)
+
+```
+
+In this case the plot shows there are young people who have a really
+high bmi. Since data is from EEUU, and there are a lof of obesity
+problems, we decide that these observations are not going to be removed.
+
+```{r}
+summary(df)
+```
 
 ### Explanatory data analysis
 
@@ -288,7 +339,7 @@ In this section I am going to check if variables "make sense"
 summary(df)
 #numeric variables
 summary(df[,c(1,3,4,7)]) 
-plot(df[,c(1,3,4,7)])
+#plot(df[,c(1,3,4,7)])
 ggpairs(df[,c(1,3,4,7)])
 #categorical variables
 summary(df[,c(1,4,8:10)])
@@ -363,7 +414,11 @@ hypothesis and say that true autocorrelation is not greater than 0.
 -   Preliminary exploratory analysis to describe the relationships
     observed has to be undertaken. [**Eliya**]
 
-Association to the target variable, we see the numeric variable age 0.301 which is the most associated but the number is quite low and it is not strong association. f.smoker is globally associated to charges, in particular, f.smoker=yes is very remarkable. 
+Association to the target variable, we see the numeric variable age
+0.301 which is the most associated but the number is quite low and it is
+not strong association. f.smoker is globally associated to charges, in
+particular, f.smoker=yes is very remarkable.
+
 ```{r}
 #library(DataExplorer)
 #create_report(df, y= "charges")
@@ -422,7 +477,6 @@ summary(df)
 par(mfrow=c(1,1))
 
 plot(df$charges,df$bmi,pch=19)
-
 
 #text(df$charges,df$bmi,label=row.names(df),col="darkgreen",adj=1.5)
 
@@ -621,6 +675,11 @@ par( mfrow = c(1,1))
 
 ```{r}
 # New categorical variables can be extracted from the actual ones?
+?boxTidwell
+
+boxTidwell(log(charges) ~ bmi + age +  I(children+0.5),~f.sex+f.smoker+f.region, data=df[-influential_obs,])
+
+
 ```
 
 #### Adding interactions (very imporant)
@@ -637,7 +696,8 @@ par( mfrow = c(1,1))
     doing with the interactions
 
 ```{r}
-m8 <- lm(log(charges)~log(bmi)+age+children * (f.sex+f.smoker+f.region+age_range), data=df[-influential_obs,])
+m8 <- lm(log(charges)~log(bmi)+ 1/sqrt(age)
+         +children * (f.sex+f.smoker+f.region+age_range), data=df[-influential_obs,])
 
 summary(m8)
 
