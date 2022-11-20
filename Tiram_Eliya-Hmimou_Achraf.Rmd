@@ -1,0 +1,641 @@
+---
+title: "Assignment1"
+output:
+  word_document: default
+  pdf_document: default
+  html_document: default
+Name: Eliya Tiram & Achraf Hmimou
+editor_options:
+  chunk_output_type: console
+  markdown:
+    wrap: 72
+---
+
+```{r}
+library(GGally)
+#install.packages("data.table")
+library(data.table)
+library(car)
+library(rpart)
+library(chemometrics)
+#install.packages("mvoutlier")
+library(mvoutlier)
+library(sgeostat)
+library(lmtest)
+```
+
+Preparing the data in the environment
+
+```{r}
+# Clear plots
+if(!is.null(dev.list())) dev.off()
+# Clean workspace
+rm(list=ls())
+#load data
+df <- read.csv("insurance.csv")
+```
+
+### Data cleaning
+
+#### Data format
+
+```{r}
+is.null(df) #no nulls in the data
+replace(df,which(df %like% " "), '') #close all blank space
+
+which(df=="") #no blanks found in the data
+#check for distinct values and whether there are differences in them
+unique(df$sex) #expecting 2 values
+unique(df$smoker) #expecting 2 values
+unique(df$region) #expecting 4 values
+#we can see that data is consistent for categorical variables
+df$f.sex <- factor(df$sex,labels = c("female","male"));
+df$f.smoker <- factor(df$smoker,labels = c("no","yes"))
+df$f.region <- factor(df$region,labels = c("northeast","northwest","southeast","southwest"))
+summary(df) #from the summary we can see the factor values, it seems that sex and region are distributed equally and not much smokers compare to the non smokers.
+dim(df)
+unique(df)
+#There is only one observation which repeat twice, it makes sense that a person with the same properties will have the same charge and since it's only one we decide to leave it there.
+#outliers
+
+```
+
+#### Outlier detection
+
+##### Univariate
+
+```{r}
+
+par(mfrow=c(1,2))
+Boxplot(df$charges)
+Boxplot(df$bmi)
+Boxplot(df$age)
+Boxplot(df$children)
+#
+
+# treat outliers for charges variable
+sevout<-quantile(df$charges,0.75,na.rm=TRUE)+3*(quantile(df$charges,0.75,na.rm=TRUE)-quantile(df$charges,0.25,na.rm=TRUE))
+sevout
+sev_out_lower <- quantile(df$charges,0.25,na.rm=TRUE)-3*(quantile(df$charges,0.75,na.rm=TRUE)-quantile(df$charges,0.25,na.rm=TRUE))
+
+mist<-quantile(df$charges,0.75,na.rm=TRUE)+1.5*(quantile(df$charges,0.75,na.rm=TRUE)-quantile(df$charges,0.25,na.rm=TRUE))
+mist
+
+mist_out_lower <- quantile(df$charges,0.25,na.rm=TRUE)-1.5*(quantile(df$charges,0.75,na.rm=TRUE)-quantile(df$charges,0.25,na.rm=TRUE))
+
+# get list of outliers
+loutse<-which(df$charges>sevout);length(loutse)
+loutmist <-which(df$charges>mist);length(loutmist)
+low_out_sever <- which(df$charges<sev_out_lower);low_out_sever
+low_out_mild <- which(df$charges<mist_out_lower);low_out_mild
+
+#table(loutse)
+#table(loutmist)
+
+# see outliers
+Boxplot(df$charges)
+abline(h=sevout,col="red")
+abline(h=mist,col="yellow")
+
+# Since there are only 6 severe outliers, we will remove them from the dataset,  
+df <- df[-which(df$charges >= sevout),]
+
+# check severe outliers for bmi atrribute
+sevout_bmi<-quantile(df$bmi,0.75,na.rm=TRUE)+3*(quantile(df$bmi,0.75,na.rm=TRUE)-quantile(df$bmi,0.25,na.rm=TRUE));sevout_bmi
+mist_bmi <- quantile(df$bmi,0.75,na.rm=TRUE)+1.5*(quantile(df$bmi,0.75,na.rm=TRUE)-quantile(df$bmi,0.25,na.rm=TRUE))
+loutse_bmi<-which(df$bmi>sevout_bmi);length(loutse_bmi) # no severe outliers for bmi
+colSums(is.na(df))
+serout_lower_bmi <- quantile(df$bmi,0.25,na.rm=TRUE)-3*(quantile(df$bmi,0.75,na.rm=TRUE)-quantile(df$bmi,0.25,na.rm=TRUE));serout_lower_bmi
+mist_lower_bmi <- quantile(df$bmi,0.25,na.rm=TRUE)-1.5*(quantile(df$bmi,0.75,na.rm=TRUE)-quantile(df$bmi,0.25,na.rm=TRUE));mist_lower_bmi
+
+up_sever_bmi <- which(df$bmi > sevout_bmi); up_sever_bmi
+up_mild_bmi <- which(df$bmi > mist_bmi); up_mild_bmi
+low_sever_bmi <- which(df$bmi < serout_lower_bmi); low_sever_bmi
+low_mild_bmi <- which(df$bmi < mist_lower_bmi); low_mild_bmi
+
+```
+
+We can see extreme outliers for both charges and bmi, since it's just
+several observation it might be the case that for a certain bmi, age or
+smokers the charge value is raising by a lot compare to the rest. from
+looking at the high value of column charges it can be seen that all are
+smokers and mid-high bmi, also some of the ages I see are relatively
+high. For the target variable we can see there is no lower bound for
+extreme and mild outliers, it's also can be seen on the Boxplot(). For
+variable bmi, mild outliers on the upper bound and no sever upper bound
+outliers and not lower bound outliers. We decided to delete the 6
+univariate outliers since the charges are very high, even though all 6
+observation are smokers, there are 274 smokers in the dataset and their
+charges values are not as high as the extreme outliers observations
+
+##### Multivariate
+
+```{r}
+res.out<-Moutlier(df[,c(7,3,1,4)],quantile=0.999)
+#str(res.out)
+plot(df$charges,df$bmi)
+res.out$cutoff
+
+#quantile(res.out$md,seq(0,1,0.001))
+which((res.out$md > res.out$cutoff) & (res.out$rd > res.out$cutoff))
+
+plot( res.out$md, res.out$rd )
+#text(res.out$md, res.out$rd, labels=rownames(df),adj=1, cex=0.5)
+abline(h=res.out$cutoff, col="red")
+abline(v=res.out$cutoff, col="red")
+df <- df[-which(res.out$md > res.out$cutoff & res.out$rd > res.out$cutoff),]
+
+
+```
+
+For the multivariate outliers, we have chosen the quantile to be a very
+high value so outliers we get are very extreme compare to our values in
+the dataset. Observation number 1048 is the multivatiate outlier we have
+got and it's indeed a very high value of charge and bmi. Since this
+observation is so extreme we will remove it from the dataset. We see
+from the plot classical Mahalanobis distance vs robust Mahalanobis
+distance that there is one observation (1048) that is behind the cutoff
+value, in addition we can indicate 3 clusters and number of observations
+that a bit far from the clusters, it can be suspected as influential
+data. We also plot charges vs bmi and we can see on the top right corner
+of the graph there is one observation which has high charge and bmi.
+
+#### Missing data
+
+```{r}
+
+# check missing data
+
+colSums(is.na(df))
+
+```
+
+There is no missing data in the dataframe so no further imputation is
+needed
+
+#### Data Validation
+
+After doing the pre processing steps where we detected and removed
+outliers, we will check if data makes sense using common sense and
+domain knowledge.
+
+```{r}
+summary(df)
+```
+
+We have ages ranging from 18 to 64, and which bmi ranging from 16 to 53
+which are values that are in the following table. The balance between
+factor variable is really good. However, only 20% of the sample are
+smokers.
+
+![](https://bmicalculator.mes.fm/img/bmi-chart.png){width="583"}
+
+Let's see how the relationship between children per age.
+
+```{r}
+
+plot(df$children~df$age)
+
+```
+
+As we can see in the plot, there are individuals with age 20 that have
+from 3 to 5 children which is really strange.
+
+```{r}
+thr2five_children <- which(df$age <= 20 & df$children>2)
+
+thr2five_children
+```
+
+This observations will be removed since it's something very unlikely.
+
+```{r}
+
+df <- df[-thr2five_children,]
+```
+
+Let's check now the bmi values per age to see if there is any weird
+case:
+
+```{r}
+plot(df$bmi~df$age)
+
+```
+
+In this case the plot shows there are young people who have a really
+high bmi. Since data is from EEUU, and there are a lof of obesity
+problems, we decide that these observations are not going to be removed.
+
+```{r}
+summary(df)
+```
+
+### Explanatory data analysis
+
+```{r}
+summary(df)
+#numeric variables
+summary(df[,c(1,3,4,7)]) 
+#plot(df[,c(1,3,4,7)])
+ggpairs(df[,c(1,3,4,7)])
+#categorical variables
+summary(df[,c(1,4,8:10)])
+
+```
+
+From the summary we can see the factor values, it seems that sex and
+region are distributed equally and not much smokers compare to the non
+smokers. age and number of children looks about right and there is
+values in a range that makes sense. In addition, we see low correlation
+(0.198) between the target variable and the other numeric explantory
+variable bmi. We don't see any pattern in the relation between the two
+variables. We see number of extreme values with high bmi and/or charges.
+
+-   Determine if the response variable (charges) has an acceptably
+    normal distribution.
+
+```{r}
+# Density plot to check the distribution
+ggpubr::ggdensity(df$charges,  fill = "lightgray", add = "mean",  xlab = "charges variable density")
+# Shapiro Test to asses that data on response variable is normaly distribution
+# H0 = Data is normally distributed
+# H1 = Data is not normally distributed
+# alfa = 0.05
+shapiro.test(df$charges)
+
+```
+
+As we can see, the density plot shows that data is not normally
+distributed. To asses that, we can use one of many statistical tests
+that check normality on data. In this case, we use Shapiro test.
+
+The result of the Shapiro test shows that data in variable **charges**
+is not normally distributed since *p-value* is less than the
+significance level (0.05) so we reject the null hypothesis (data is
+normally distributed) and we conclude that data is not normally
+distributed (alternative hypothesis)
+
+Let's try to apply the log transformation
+
+```{r}
+# Density plot to check the distribution
+ggpubr::ggdensity(log(df$charges),  fill = "lightgray", add = "mean",  xlab = "charges variable density")
+
+# Shapiro Test to asses that data on response variable is normaly distribution
+# H0 = Data is normally distributed
+# H1 = Data is not normally distributed
+# alfa = 0.05
+shapiro.test(log(df$charges))
+
+```
+
+The null hypothesis can be still rejected so data still not being not
+normally distributed.
+
+```{r}
+par(mfrow=c(1,1))
+acf(df$charges)
+dwtest(df$charges~1)
+```
+
+Address tests to discard serial correlation: In the acf (auto
+correlation function) we can see from the graph that the data is not
+correlated where we have the blue threshold and all lines are within the
+threshold, we do see that there is one or two lines that crosses the
+threshold but just in a little bit so we leave it as it is without
+random the order of the observations. In addition we address
+Durbin-Watson test to check whether true autocorrelation is greater or
+not than 0. We see p-value 0.5183, thus we don't reject the null
+hypothesis and say that true autocorrelation is not greater than 0.
+
+```{r}
+#library(DataExplorer)
+#create_report(df, y= "charges")
+
+library(FactoMineR)
+res.con <- condes(df[,c(1,3,4,7,8:10)], num.var = 4 , proba = 0.01 )
+res.con$quanti
+res.con$quali
+res.con$category
+```
+
+Association to the target variable, we see the numeric variable age
+0.301 which is the most associated but the number is quite low and it is
+not strong association. Following age, we have bmi and then children.
+
+For categorical variables we see that f.smoker is globally associated to
+charges, in particular, f.smoker=yes is very remarkable. Let's check the
+case of smoker category.
+
+```{r}
+
+
+res.cat <- catdes(df[,c(9,3,4,7,8, 1, 10)], num.var = 1 , proba = 0.01 )
+
+res.cat$quanti
+res.cat$category
+res.cat$quanti.var
+
+```
+
+We can see that the mean of charges for smokers is much more higher than
+people who don't smoke. Smoking seems a very important influence in the
+price for having high insurance charges.
+
+### Building the model
+
+#### First model
+
+```{r}
+
+m1<-lm(charges~bmi+age+children, data = df)
+summary(m1)
+
+
+par(mfrow=c(2,2))
+plot(m1)
+par(mfrow=c(1,1))
+
+```
+
+
+Looking at the summary of the model, the RSquared is very low and there
+is a lot of residual standard error.
+
+If we study the residual error looking at the plots we can see that the
+data is not following a normal distribution since there are deviations
+of the line (Normal Q-Q plot). Also there are a lot of sparsity in the
+variance (Scale-Location plot).
+
+#### Asses multicollinearity
+
+Maybe there is multicollinearity that is causing bad results
+
+```{r}
+car::vif(m1)
+```
+
+The vif values are low (less than 5) so there aren't problems of
+multidisciplinary.
+
+Let's try to do some transformations to the data.
+
+#### Transformation
+
+```{r}
+library(MASS)
+
+boxcox(charges~bmi+age+children, data = df)
+```
+
+The boxplots shows that the lambda values are close to 0 so a
+logarithmic transformation to the target variable should help to improve
+the results
+
+```{r}
+
+# (only for numerical variables)
+
+boxTidwell(log(charges) ~ bmi + age +  I(children+0.5), data=df)
+
+# poly(age,3) for adding ortogonal polynomial
+```
+
+The transformations of the explanatory variables are not performed since
+all p-values are above 0.05 significance level.
+
+```{r}
+
+m2 <- lm(log(charges)~bmi+ age+children, data = df)
+
+summary(m2)
+
+par(mfrow=c(2,2))
+plot(m2)
+par(mfrow=c(1,1))
+
+```
+
+The model is still not performing very well. However if we check the
+study of residuals we can see that it results in an improvement.
+
+The normal Q-Q plot still have a deviation but is that big as the m1 and
+if we check the Scale-Location of the standard residuals the variance is
+better.
+
+```{r}
+avPlots(m2)
+```
+
+The partial regressions plots shows that all regresors have two big
+clusters of data.
+
+```{r}
+AIC(m1,m2)
+```
+
+The AIC test shows that model 2 is performing much better than model 1
+so we will continue with it.
+
+#### Inlfuential data
+
+Maybe, removing influential data the results can be improved.
+
+-   Residual outliers
+
+-   Influential values
+
+```{r}
+
+library(car)
+
+influencePlot(m2)
+# there are a lot of influential data
+
+
+# With cooks distance
+cooksD <- cooks.distance(m2)
+n <- nrow(df)
+plot(cooksD, main = "Cooks Distance for Influential Obs")
+abline(h = 4/n, lty = 2, col = "steelblue") # add cutoff line
+
+influential_obs <- as.numeric(names(cooksD)[(cooksD > (4/n))])
+influential_obs
+length(influential_obs)
+m3 <- lm(log(charges)~bmi+age+children, data=df[-influential_obs,])
+summary(m3)
+
+par(mfrow=c(2,2))
+plot(m3)
+par(mfrow=c(1,1))
+
+influencePlot(m3)
+```
+
+```{r}
+#create scatterplot with influential data present
+outliers_present <- ggplot(data = df, aes(x = bmi + age + children, y = log(charges))) +
+  geom_point() +
+  geom_smooth(method = lm) +
+#  ylim(0, 200) +
+  ggtitle("Ifluential data Present")
+
+#create scatterplot with influential data removed
+outliers_removed <- ggplot(data = df[-influential_obs,], aes(x = bmi + age + children, y = log(charges))) +
+  geom_point() +
+  geom_smooth(method = lm) +
+#  ylim(0, 200) +
+  ggtitle("Influential data Removed")
+
+#plot both scatterplots side by side
+gridExtra::grid.arrange(outliers_present, outliers_removed, ncol = 2)
+```
+
+#### Adding factors
+
+-   Check that meaning of a factor could not be related to the numerical
+    variables so one should be used.
+
+-   AIC test to compare
+
+```{r}
+
+summary(df)
+m4 <- lm(log(charges)~bmi+age+children+f.sex+f.smoker+f.region, data=df[-influential_obs,])
+summary(m4)
+```
+
+Let's try to check if there are factors that could be removed
+
+```{r}
+Anova(m4)
+m5 <- step( m4 )
+summary(m5)
+
+par( mfrow = c(2,2))
+plot( m5, id.n=0 )
+par( mfrow = c(1,1))
+```
+
+Le's try to transform age into a factor
+
+```{r}
+
+df$age_range <- cut(df$age, breaks = quantile(df$age,probs = c(0,0.5,1)), include.lowest = T)
+summary(df)
+```
+
+We have created a new variable called age_range where we divide the ages
+into 4 groups according to the 4 quantiles. From the summary (and the
+new column in the data set) we see 4 groups of ages and how many
+observations were fit into each age group. The results does not changed
+a lot with 4 quantiles and we tried with 2 groups and this got a more
+interesting result.
+
+```{r}
+
+m6 <- lm(log(charges)~bmi+children+f.sex+f.smoker+f.region+age_range, data=df[-influential_obs,])
+summary(m6)
+
+par( mfrow = c(2,2))
+plot( m6, id.n=0 )
+par( mfrow = c(1,1))
+```
+
+```{r}
+AIC(m5,m6)
+```
+
+Removing age as a numerical exploratory variable and adding it as a
+factor does not improve things in general. However we can see that the
+normal Q-Q plot from the residuals is better since we reduced the impact
+of age variable. We will continue with model 5.
+
+#### Adding interactions
+
+With the model added factors will try to check adding double
+interactions between all numerical and factors.
+
+```{r}
+m7 <- lm(log(charges)~bmi+age
+         +children * (f.sex+f.smoker+f.region), data=df[-influential_obs,])
+
+summary(m7)
+
+m8 <- step(m7) # see which is the best combination
+
+summary(m8)
+par( mfrow = c(2,2))
+plot( m8, id.n=0 )
+par( mfrow = c(1,1))
+
+
+```
+
+This will be our final model after several iterations.
+
+```{r}
+
+library(effects)
+plot(allEffects(m8))
+```
+
+The allEffects plot shows that being a female have an effect of
+increasing the charges. In addition, we can see that having more
+children has an effect of increasing the charges on no smokers. On the
+other hand, smokers seem to have to pay much more regardless to the
+number of children .
+
+#### Validation of the model
+
+```{r}
+library(car)
+
+residualPlot(m8)
+influencePlot(m8)
+# there are a lot of influential data
+
+influential_after_iteractions <- which(rownames(df) %in% c("517","1028", "220", "431"))
+  
+influential_after_iteractions
+
+influential_obs <- c(influential_obs, influential_after_iteractions)
+
+m9 <- lm(log(charges)~bmi+age+children+children * (f.sex+f.smoker+f.region), data=df[-influential_obs,])
+summary(m9)
+
+par(mfrow=c(2,2))
+plot(m9)
+par(mfrow=c(1,1))
+
+```
+
+We addressed again influential data after adding interactions and we
+removed some observations.
+
+The final model created have an adjusted R-squared score of 0.78 which
+is good. However, studying the residual plots there are patterns that
+are producing a deviation in the normal Q-Q.
+
+This patters are mainly introduced by the **age** variable which we
+tried to reduce the impact transforming it into a factor with an
+age-range variable and removing it from the numerical explanatory
+variables. This transformation helped us to have a better normal Q-Q
+plot but reduced significantly the R-squared score.
+
+Our decision is that we keep the age variable since we consider it an
+important variable and it has a positive impact in the r-squared score
+so the model will be better explained.
+
+```{r}
+avPlots(m8)
+```
+
+We can see in the partial regression plots that people who are older are
+paying more charges and also people who smoke are significantly paying
+more. Also having more childrens and having a high bmi is affecting to
+paying more.
+
+We managed to reach a good R-Squared which explains a lot of the
+variable charges and could help to make an prediction of what would a
+person be paying.
